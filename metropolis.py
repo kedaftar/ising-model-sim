@@ -76,7 +76,7 @@ def metropolis (spin_arr, times, BJ, energy):
         net_spins[t] = spin_array.sum() #total net spins at time step 
         net_energy[t] = energy #total net energy at time step
 
-    return net_spins, net_energy
+    return spin_array,net_spins, net_energy
 
 
 
@@ -117,7 +117,7 @@ def get_spin_energy(lattice0, BJs, sweeps=5000, burn_in=1000, thin=10, n_blocks=
         energy0 = lattice.Lattice_energy.get_energy(lattice_run)
 
         # run metropolis (Numba compiled)
-        spins, energies = metropolis(lattice_run.astype(np.int64), sweeps, bj, energy0)
+        _,spins, energies = metropolis(lattice_run.astype(np.int64), sweeps, bj, energy0)
 
         # discard burn in
         spins_eq = spins[burn_in:]
@@ -151,12 +151,15 @@ if __name__ == "__main__":
     # Test 1: Single run with time evolution
     print("\n[Test 1] Running single Metropolis simulation...")
     energy0 = lattice.Lattice_energy.get_energy(Lattice.lattice_n)
-    spins, energies = metropolis(
+    final_lattice,spins, energies = metropolis(
         Lattice.lattice_n.astype(np.int64),
         1000,
         0.5,
         energy0
     )
+    fig_init, _ = plot_lattice(Lattice.lattice_n, title="Initial Lattice")
+    fig_final, _ = plot_lattice(final_lattice, title="Final Lattice")
+
     print(f"Initial energy: {energy0}")
     print(f"Final energy: {energies[-1]}")
     print(f"Final magnetization: {spins[-1]}")
@@ -198,24 +201,34 @@ if __name__ == "__main__":
     )
 
    # Generate phase diagram plots
-fig_mag, _ = plot_magnetization_vs_beta(
+    fig_mag, _ = plot_magnetization_vs_beta(
     BJs, ms, m_std,
     title="Magnetization vs Inverse Temperature"
 )
 
-fig_energy, _ = plot_energy_vs_beta(
+    fig_energy, _ = plot_energy_vs_beta(
     BJs, e_means, e_std,
     title="Energy vs Inverse Temperature"
 )
 
-fig_phase, _ = plot_phase_diagram(
+    fig_phase, _ = plot_phase_diagram(
     BJs, ms, e_means, m_std, e_std
 )
 
-fig_std_comparison, _ = plot_standard_deviation(
+    fig_std_comparison, _ = plot_standard_deviation(
     np.array([m_std, e_std]),
     labels=['Magnetization', 'Energy'],
     title="Standard Deviation Comparison Across Temperatures"
+)
+
+    fig_lattice_initial, _ = plot_lattice(
+    Lattice.lattice_n,
+    title="Initial Lattice Configuration"
+)
+
+    fig_lattice_final, _ = plot_lattice(
+    final_lattice,
+    title="Final Lattice Configuration (After Metropolis)"
 )
 
 # Debug: ensure these are Figures (not tuples)
@@ -223,5 +236,20 @@ print(type(fig_mag), type(fig_energy), type(fig_phase), type(fig_std_comparison)
 
 show_plots(
     fig_mag, fig_energy, fig_phase, fig_std_comparison,
-    save_path='./output', filename_prefix='phase_diagram'
+    save_path='./output', filename_prefix='phase_diagram',
 )
+show_plots(
+    fig_lattice_initial, fig_lattice_final,
+    save_path='./output', filename_prefix='Lattice'
+)
+
+np.savez(
+    "./output/single_run_data.npz",
+    lattice0=Lattice.lattice_n,
+    lattice_final=final_lattice,
+    spins=spins,
+    energies=energies,
+    beta=0.5,
+    N=N
+)
+
