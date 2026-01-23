@@ -8,7 +8,8 @@ from scipy.ndimage import convolve, generate_binary_structure
 
 class Lattice:
 #50 by 50 lattice
-    N = 50
+    N = input ("Enter lattice size N (suggested 50): ")
+    N = int (N)
 #shows initial lattice of spins 
     init_random = np.random.random((N,N))
     lattice_n = np.zeros((N,N))
@@ -19,11 +20,11 @@ class Lattice:
     lattice_p[init_random >= 0.25] = 1
     lattice_p[init_random < 0.25] = -1
 
-class Lattice_energy:
+class Lattice_energy: 
     def get_energy(lattice): #applies the nearest neighbor summation 
         kern = generate_binary_structure(2,1) 
         kern[1][1] = False 
-        energies_of_lattice = -lattice * convolve(lattice, kern, mode= r'constant', cval=0   )
-        return energies_of_lattice.sum()
+        energies_of_lattice = -lattice * convolve(lattice, kern, mode= 'constant', cval=0 )
+        return 0.5 * energies_of_lattice.sum()
 
 print (Lattice_energy.get_energy(Lattice.lattice_n))
