@@ -1,0 +1,22 @@
+{
+  "lattice": {
+    "N": 50,
+    "initial_condition": "random"
+  },
+
+  "simulation": {
+    "beta": 0.5,
+    "sweeps": 5000,
+    "burn_in": 1000,
+    "thin": 10
+  },
+
+  "random": {
+    "seed": 42
+  },
+
+  "output": {
+    "save_path": "./output",
+    "prefix": "ising_run"
+  }
+}

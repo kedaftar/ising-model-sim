@@ -6,7 +6,7 @@ import numba as nb
 from numba import njit
 from scipy.ndimage import convolve, generate_binary_structure
 
-class Lattice:
+class Lattice: 
 #50 by 50 lattice
     N = input ("Enter lattice size N (suggested 50): ")
     N = int (N)
