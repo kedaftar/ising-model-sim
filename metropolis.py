@@ -232,24 +232,24 @@ if __name__ == "__main__":
 )
 
 # Debug: ensure these are Figures (not tuples)
-print(type(fig_mag), type(fig_energy), type(fig_phase), type(fig_std_comparison))
+# print(type(fig_mag), type(fig_energy), type(fig_phase), type(fig_std_comparison))
 
-show_plots(
-    fig_mag, fig_energy, fig_phase, fig_std_comparison,
-    save_path='./output', filename_prefix='phase_diagram',
-)
-show_plots(
-    fig_lattice_initial, fig_lattice_final,
-    save_path='./output', filename_prefix='Lattice'
-)
+# show_plots(
+#     fig_mag, fig_energy, fig_phase, fig_std_comparison,
+#     save_path='./output', filename_prefix='phase_diagram',
+# )
+# show_plots(
+#     fig_lattice_initial, fig_lattice_final,
+#     save_path='./output', filename_prefix='Lattice'
+# )
 
-np.savez(
-    "./output/single_run_data.npz",
-    lattice0=Lattice.lattice_n,
-    lattice_final=final_lattice,
-    spins=spins,
-    energies=energies,
-    beta=0.5,
-    N=N
-)
+# np.savez(
+#     "./output/single_run_data.npz",
+#     lattice0=Lattice.lattice_n,
+#     lattice_final=final_lattice,
+#     spins=spins,
+#     energies=energies,
+#     beta=0.5,
+#     N=N
+# )
 
