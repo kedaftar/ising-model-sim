@@ -143,10 +143,10 @@ def get_spin_energy(lattice0, BJs, sweeps=5000, burn_in=1000, thin=10, n_blocks=
     return ms, m_std, energy_means, energy_std
 
 #tester 
-if __name__ == "__main__":
-    print("="*60)
-    print("ISING MODEL SIMULATION - TESTING AND VISUALIZATION")
-    print("="*60)
+# if __name__ == "__main__":
+#     print("="*60)
+#     print("ISING MODEL SIMULATION - TESTING AND VISUALIZATION")
+#     print("="*60)
     
     # Generate fresh lattice for testing
     test_lattice = Lattice.generate_lattice_n()
