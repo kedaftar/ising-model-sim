@@ -29,8 +29,16 @@ import scienceplots
 plt.style.use(['science', 'notebook', 'grid'])
 import json
 
-with open("config.json", "r") as f:
-    config = json.load(f)
+# Config will be loaded fresh in main() function, not at module import
+config = None
+
+
+def load_config():
+    """Load config.json fresh every time"""
+    global config
+    with open("config.json", "r") as f:
+        config = json.load(f)
+    return config
 
 
 class IssingModelPipeline:
@@ -39,15 +47,29 @@ class IssingModelPipeline:
     Orchestrates: Lattice initialization -> Metropolis simulation -> Visualization -> Analysis
     """
     
-    def __init__(self, output_dir='./output'):
+    def __init__(self, output_dir=None, config_dict=None):
         """
         Initialize the pipeline.
         
         Parameters:
         -----------
         output_dir : str
-            Directory to save output files
+            Directory to save output files (defaults to config value)
+        config_dict : dict
+            Configuration dictionary (loaded fresh in main())
         """
+        # Store config reference for use throughout pipeline
+        global config
+        if config_dict is not None:
+            self.config = config_dict
+        elif config is not None:
+            self.config = config
+        else:
+            self.config = load_config()
+            config = self.config
+            
+        if output_dir is None:
+            output_dir = self.config["output"]["save_path"]
         self.output_dir = output_dir
         os.makedirs(output_dir, exist_ok=True)
         
@@ -60,6 +82,7 @@ class IssingModelPipeline:
         self.e_means = None
         self.e_std = None
         self.BJs = None
+        self.beta_single = None  # Track the beta used for single simulation
         
         print("="*70)
         print("ISING MODEL SIMULATION - INTEGRATION PIPELINE")
@@ -82,11 +105,18 @@ class IssingModelPipeline:
         print("STEP 1: INITIALIZE LATTICE")
         print("-"*70)
         
+        # Import Lattice fresh to ensure we're using reloaded version
+        from lattice import Lattice, Lattice_energy
+        
+        # Verify N is correct
+        print(f"  Lattice.N from config: {Lattice.N}")
+        
+        # Generate a fresh lattice for this run (no seed = random)
         if use_lattice == 'lattice_n':
-            self.lattice_init = Lattice.lattice_n.copy()
+            self.lattice_init = Lattice.generate_lattice_n(seed=None)
             lattice_name = "Lattice (negative dominant)"
         else:
-            self.lattice_init = Lattice.lattice_p.copy()
+            self.lattice_init = Lattice.generate_lattice_p(seed=None)
             lattice_name = "Lattice (positive dominant)"
         
         initial_energy = Lattice_energy.get_energy(self.lattice_init)
@@ -95,6 +125,8 @@ class IssingModelPipeline:
         print(f"  Size: {self.lattice_init.shape}")
         print(f"  Initial energy: {initial_energy:.2f}")
         print(f"  Mean spin: {self.lattice_init.mean():.4f}")
+        print(f"  First element [0,0]: {self.lattice_init[0,0]:.0f}")
+        print(f"  Sum of first row: {self.lattice_init[0].sum():.0f}")
         
         return self.lattice_init
     
@@ -117,6 +149,9 @@ class IssingModelPipeline:
         print("STEP 2: RUN SINGLE METROPOLIS SIMULATION")
         print("-"*70)
         
+        # Store beta for this run
+        self.beta_single = beta
+        
         energy0 = Lattice_energy.get_energy(self.lattice_init)
         print(f"Running Metropolis algorithm...")
         print(f"  β = {beta} (1/(k_B*T))")
@@ -136,7 +171,7 @@ class IssingModelPipeline:
         
         return self.spins, self.energies
     
-    def step3_run_phase_diagram(self, BJs=None, sweeps=5000, burn_in=1000, thin=10):
+    def step3_run_phase_diagram(self, BJs=None, sweeps=None, burn_in=None, thin=None):
         """
         Step 3: Run temperature sweep for phase diagram from metropolis.py
         
@@ -145,11 +180,11 @@ class IssingModelPipeline:
         BJs : np.ndarray
             Array of beta values to scan
         sweeps : int
-            Number of MC sweeps per temperature
+            Number of MC sweeps per temperature (defaults to config value)
         burn_in : int
-            Number of sweeps to discard as equilibration
+            Number of sweeps to discard as equilibration (defaults to config value)
         thin : int
-            Thinning factor for sample collection
+            Thinning factor for sample collection (defaults to config value)
         
         Returns:
         --------
@@ -161,6 +196,12 @@ class IssingModelPipeline:
         
         if BJs is None:
             BJs = np.array([0.2, 0.3, 0.4, 0.44, 0.5, 0.6, 0.8, 1.0])
+        if sweeps is None:
+            sweeps = self.config["simulation"]["sweeps"]
+        if burn_in is None:
+            burn_in = self.config["simulation"]["burn_in"]
+        if thin is None:
+            thin = self.config["simulation"]["thin"]
         
         self.BJs = BJs
         
@@ -187,6 +228,7 @@ class IssingModelPipeline:
     def step4_generate_visualizations(self, save_plots=True):
         """
         Step 4: Generate all visualizations from visualization.py
+        Uses FRESH data from the current simulation run.
         
         Parameters:
         -----------
@@ -201,24 +243,47 @@ class IssingModelPipeline:
         print("STEP 4: GENERATE VISUALIZATIONS")
         print("-"*70)
         
+        # Close any existing figures to prevent caching issues
+        plt.close('all')
+        
+        # Verify we have fresh data
+        print(f"  Using data from current run:")
+        if self.lattice_init is not None:
+            print(f"    Initial lattice energy: {Lattice_energy.get_energy(self.lattice_init):.2f}")
+        if self.spins is not None:
+            print(f"    Spin data points: {len(self.spins)}")
+            print(f"    Final spin: {self.spins[-1]:.2f}")
+        if self.energies is not None:
+            print(f"    Final energy: {self.energies[-1]:.2f}")
+        
         figures = {}
         
-        # Lattice visualizations
+        # Lattice visualizations - using CURRENT simulation data
         if self.lattice_init is not None:
             print("  Generating lattice plots...")
             figures['lattice_init'] = plot_lattice(
                 self.lattice_init,
-                title="Initial Lattice Configuration"
+                title=f"Initial Lattice (E={Lattice_energy.get_energy(self.lattice_init):.1f})"
             )[0]
+            
+            if self.lattice_final is not None:
+                figures['lattice_final'] = plot_lattice(
+                    self.lattice_final,
+                    title=f"Final Lattice (after {len(self.spins)} sweeps)"
+                )[0]
         
-        # Single run visualizations
+        # Single run visualizations - using CURRENT simulation data
         if self.spins is not None and self.energies is not None:
             print("  Generating time evolution plots...")
+            # Use the stored beta_single if available, otherwise fall back to config
+            beta_display = self.beta_single if self.beta_single is not None else self.config['simulation']['beta']
+            print(f"    Using β = {beta_display} for plot titles")
+            
             figures['time_evolution'] = plot_spin_and_energy_vs_time(
                 np.arange(len(self.spins)),
                 self.spins,
                 self.energies,
-                title="Spin and Energy Evolution"
+                title=f"Spin and Energy Evolution (β={beta_display})"
             )[0]
             
             figures['std_spins'] = plot_standard_deviation(
@@ -231,7 +296,7 @@ class IssingModelPipeline:
                 title="Energy Standard Deviation Over Time"
             )[0]
         
-        # Phase diagram visualizations
+        # Phase diagram visualizations - using CURRENT simulation data
         if self.ms is not None and self.BJs is not None:
             print("  Generating phase diagram plots...")
             figures['magnetization_vs_beta'] = plot_magnetization_vs_beta(
@@ -255,7 +320,7 @@ class IssingModelPipeline:
                 title="Standard Deviation Comparison"
             )[0]
         
-        print(f"✓ Generated {len(figures)} visualizations")
+        print(f"✓ Generated {len(figures)} visualizations from fresh simulation data")
         
         # Save plots
         if save_plots and figures:
@@ -295,6 +360,35 @@ class IssingModelPipeline:
         
         return analysis_results
     
+    def _save_run_data(self, analysis):
+        """
+        Save simulation data to npz file for verification and later use.
+        """
+        import time
+        timestamp = time.strftime("%Y%m%d_%H%M%S")
+        filename = os.path.join(self.output_dir, f"run_data_{timestamp}.npz")
+        
+        # Use the stored beta_single value
+        beta_to_save = self.beta_single if self.beta_single is not None else self.config["simulation"]["beta"]
+        
+        np.savez(
+            filename,
+            lattice_init=self.lattice_init,
+            lattice_final=self.lattice_final,
+            spins=self.spins,
+            energies=self.energies,
+            beta_single=beta_to_save,  # Save the actual beta used for single run
+            BJs=self.BJs,
+            ms=self.ms,
+            m_std=self.m_std,
+            e_means=self.e_means,
+            e_std=self.e_std,
+            analysis=analysis
+        )
+        print(f"  Data saved: {filename}")
+        print(f"    Beta (single run): {beta_to_save}")
+        print(f"    Beta values (phase diagram): {self.BJs}")
+    
     def run_full_pipeline(self, use_lattice='lattice_n', beta_single=0.5, 
                          sweeps_single=1000, BJs=None, sweeps_phase=5000):
         """
@@ -333,6 +427,9 @@ class IssingModelPipeline:
             # Step 5: Analysis
             analysis = self.step5_analyze_results()
             
+            # Save data to npz file for verification
+            self._save_run_data(analysis)
+            
             print("\n" + "="*70)
             print("PIPELINE COMPLETED SUCCESSFULLY")
             print("="*70)
@@ -361,15 +458,45 @@ class IssingModelPipeline:
 def main():
     """Main entry point for the integration pipeline."""
     
-    # Create and run pipeline
-    pipeline = IssingModelPipeline(output_dir='./output')
+    # IMPORTANT: Reload modules to ensure fresh config on every run
+    import importlib
+    import sys
+    
+    # Force reload of config-dependent modules
+    if 'lattice' in sys.modules:
+        importlib.reload(sys.modules['lattice'])
+    
+    # Re-import after reload
+    from lattice import Lattice, Lattice_energy
+    
+    # Load config fresh every run
+    config = load_config()
+    
+    # Update Lattice.N with fresh config
+    Lattice.N = config["lattice"]["N"]
+    
+    print("\n" + "="*70)
+    print("LOADING CONFIGURATION")
+    print("="*70)
+    print(f"Config file: config.json")
+    print(f"  Lattice size N: {config['lattice']['N']}")
+    print(f"  Lattice.N (verified): {Lattice.N}")
+    print(f"  Beta (β): {config['simulation']['beta']}")
+    print(f"  Sweeps: {config['simulation']['sweeps']}")
+    print(f"  Burn-in: {config['simulation']['burn_in']}")
+    print(f"  Thin: {config['simulation']['thin']}")
+    print(f"  Output path: {config['output']['save_path']}")
+    print("="*70 + "\n")
+    
+    # Create and run pipeline using fresh config values
+    pipeline = IssingModelPipeline(output_dir=config["output"]["save_path"], config_dict=config)
     
     results = pipeline.run_full_pipeline(
         use_lattice='lattice_n',
-        beta_single=0.5,
-        sweeps_single=1000,
+        beta_single=config["simulation"]["beta"],
+        sweeps_single=config["simulation"]["sweeps"],
         BJs=np.array([0.2, 0.3, 0.4, 0.44, 0.5, 0.6, 0.8, 1.0]),
-        sweeps_phase=5000
+        sweeps_phase=config["simulation"]["sweeps"]
     )
     
     return results
@@ -377,6 +504,3 @@ def main():
 
 if __name__ == "__main__":
     results = main()
-
-
-

@@ -148,16 +148,19 @@ if __name__ == "__main__":
     print("ISING MODEL SIMULATION - TESTING AND VISUALIZATION")
     print("="*60)
     
+    # Generate fresh lattice for testing
+    test_lattice = Lattice.generate_lattice_n()
+    
     # Test 1: Single run with time evolution
     print("\n[Test 1] Running single Metropolis simulation...")
-    energy0 = lattice.Lattice_energy.get_energy(Lattice.lattice_n)
+    energy0 = lattice.Lattice_energy.get_energy(test_lattice)
     final_lattice,spins, energies = metropolis(
-        Lattice.lattice_n.astype(np.int64),
+        test_lattice.astype(np.int64),
         1000,
         0.5,
         energy0
     )
-    fig_init, _ = plot_lattice(Lattice.lattice_n, title="Initial Lattice")
+    fig_init, _ = plot_lattice(test_lattice, title="Initial Lattice")
     fig_final, _ = plot_lattice(final_lattice, title="Final Lattice")
 
     print(f"Initial energy: {energy0}")
@@ -166,7 +169,7 @@ if __name__ == "__main__":
     
     # Generate graphs for single run
     print("\n[Test 1] Generating visualization plots...")
-    fig_lattice, _ = plot_lattice(Lattice.lattice_n, title="Initial Lattice Configuration")
+    fig_lattice, _ = plot_lattice(test_lattice, title="Initial Lattice Configuration")
 
     fig_time, _ = plot_spin_and_energy_vs_time(
     np.arange(len(spins)),
@@ -189,10 +192,13 @@ if __name__ == "__main__":
     print("[Test 2] Running temperature sweep for phase diagram...")
     print("="*60)
     
+    # Generate fresh lattice for phase diagram test
+    test_lattice_phase = Lattice.generate_lattice_n()
+    
     BJs = np.array([0.2, 0.3, 0.4, 0.44, 0.5, 0.6, 0.8, 1.0])
     
     ms, m_std, e_means, e_std = get_spin_energy(
-        Lattice.lattice_n,
+        test_lattice_phase,
         BJs,
         sweeps=5000,
         burn_in=1000,
@@ -222,7 +228,7 @@ if __name__ == "__main__":
 )
 
     fig_lattice_initial, _ = plot_lattice(
-    Lattice.lattice_n,
+    test_lattice_phase,
     title="Initial Lattice Configuration"
 )
 

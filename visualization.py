@@ -1,8 +1,11 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import scienceplots
+import time
 
 plt.style.use(['science', 'notebook', 'grid'])
+# Ensure interactive mode is off to prevent caching
+plt.ioff()
 
 
 def plot_lattice(lattice, title="Lattice Configuration", cmap='coolwarm'):
@@ -22,9 +25,14 @@ def plot_lattice(lattice, title="Lattice Configuration", cmap='coolwarm'):
     --------
     fig, ax : matplotlib figure and axes objects
     """
-    fig, ax = plt.subplots(figsize=(8, 8))
+    # Create a completely new figure (no caching)
+    fig = plt.figure(figsize=(8, 8))
+    ax = fig.add_subplot(111)
     
-    im = ax.imshow(lattice, cmap=cmap, interpolation='nearest')
+    # Make a copy to ensure no reference issues
+    lattice_data = np.array(lattice, copy=True)
+    
+    im = ax.imshow(lattice_data, cmap=cmap, interpolation='nearest')
     ax.set_xlabel('X')
     ax.set_ylabel('Y')
     ax.set_title(title)
@@ -32,7 +40,7 @@ def plot_lattice(lattice, title="Lattice Configuration", cmap='coolwarm'):
     cbar = plt.colorbar(im, ax=ax)
     cbar.set_label('Spin')
     
-    plt.tight_layout()
+    fig.tight_layout()
     return fig, ax
 
 
@@ -58,21 +66,29 @@ def plot_spin_and_energy_vs_time(times, spins, energies, title="Spin and Energy 
     if isinstance(times, int):
         times = np.arange(times)
     
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 8), sharex=True)
+    # Create completely new figure
+    fig = plt.figure(figsize=(12, 8))
+    ax1 = fig.add_subplot(2, 1, 1)
+    ax2 = fig.add_subplot(2, 1, 2, sharex=ax1)
+    
+    # Make copies of data
+    times_data = np.array(times, copy=True)
+    spins_data = np.array(spins, copy=True)
+    energies_data = np.array(energies, copy=True)
     
     # Plot net spins
-    ax1.plot(times, spins, linewidth=1.5, color='steelblue')
+    ax1.plot(times_data, spins_data, linewidth=1.5, color='steelblue')
     ax1.set_ylabel('Net Spin (Magnetization)')
     ax1.set_title(title)
     ax1.grid(True, alpha=0.3)
     
     # Plot energies
-    ax2.plot(times, energies, linewidth=1.5, color='darkred')
+    ax2.plot(times_data, energies_data, linewidth=1.5, color='darkred')
     ax2.set_xlabel('Time Step')
     ax2.set_ylabel('Total Energy')
     ax2.grid(True, alpha=0.3)
     
-    plt.tight_layout()
+    fig.tight_layout()
     return fig, (ax1, ax2)
 
 
@@ -95,11 +111,15 @@ def plot_standard_deviation(data_array, labels=None, title="Standard Deviation A
     --------
     fig, ax : matplotlib figure and axes objects
     """
-    fig, ax = plt.subplots(figsize=(10, 6))
+    # Create new figure
+    fig = plt.figure(figsize=(10, 6))
+    ax = fig.add_subplot(111)
     
-    # Handle different input formats
+    # Handle different input formats and copy data
     if isinstance(data_array, list):
-        data_array = np.asarray(data_array)
+        data_array = np.asarray(data_array, dtype=object)
+    else:
+        data_array = np.array(data_array, copy=True)
     
     # Calculate standard deviations
     if data_array.ndim == 1:
@@ -127,7 +147,7 @@ def plot_standard_deviation(data_array, labels=None, title="Standard Deviation A
     
     ax.set_title(title)
     ax.grid(True, alpha=0.3, axis='y')
-    plt.tight_layout()
+    fig.tight_layout()
     return fig, ax
 
 
@@ -150,21 +170,28 @@ def plot_magnetization_vs_beta(betas, magnetizations, m_std=None, title="Magneti
     --------
     fig, ax : matplotlib figure and axes objects
     """
-    fig, ax = plt.subplots(figsize=(10, 6))
+    # Create new figure
+    fig = plt.figure(figsize=(10, 6))
+    ax = fig.add_subplot(111)
+    
+    # Copy data
+    betas_data = np.array(betas, copy=True)
+    mags_data = np.array(magnetizations, copy=True)
     
     if m_std is not None:
-        ax.errorbar(betas, magnetizations, yerr=m_std, fmt='o-', 
+        m_std_data = np.array(m_std, copy=True)
+        ax.errorbar(betas_data, mags_data, yerr=m_std_data, fmt='o-', 
                    linewidth=2, markersize=8, capsize=5, color='steelblue',
                    ecolor='darkblue', alpha=0.8)
     else:
-        ax.plot(betas, magnetizations, 'o-', linewidth=2, markersize=8, color='steelblue')
+        ax.plot(betas_data, mags_data, 'o-', linewidth=2, markersize=8, color='steelblue')
     
     ax.set_xlabel('β = 1/(k_B T)')
     ax.set_ylabel('Magnetization (|M|)')
     ax.set_title(title)
     ax.grid(True, alpha=0.3)
     
-    plt.tight_layout()
+    fig.tight_layout()
     return fig, ax
 
 
@@ -187,21 +214,28 @@ def plot_energy_vs_beta(betas, energies, e_std=None, title="Energy vs Temperatur
     --------
     fig, ax : matplotlib figure and axes objects
     """
-    fig, ax = plt.subplots(figsize=(10, 6))
+    # Create new figure
+    fig = plt.figure(figsize=(10, 6))
+    ax = fig.add_subplot(111)
+    
+    # Copy data
+    betas_data = np.array(betas, copy=True)
+    energies_data = np.array(energies, copy=True)
     
     if e_std is not None:
-        ax.errorbar(betas, energies, yerr=e_std, fmt='o-', 
+        e_std_data = np.array(e_std, copy=True)
+        ax.errorbar(betas_data, energies_data, yerr=e_std_data, fmt='o-', 
                    linewidth=2, markersize=8, capsize=5, color='darkred',
                    ecolor='red', alpha=0.8)
     else:
-        ax.plot(betas, energies, 'o-', linewidth=2, markersize=8, color='darkred')
+        ax.plot(betas_data, energies_data, 'o-', linewidth=2, markersize=8, color='darkred')
     
     ax.set_xlabel('β = 1/(k_B T)')
     ax.set_ylabel('Energy per spin (E/N)')
     ax.set_title(title)
     ax.grid(True, alpha=0.3)
     
-    plt.tight_layout()
+    fig.tight_layout()
     return fig, ax
 
 
@@ -226,7 +260,14 @@ def plot_phase_diagram(betas, magnetizations, energies, m_std=None, e_std=None):
     --------
     fig, (ax1, ax2) : matplotlib figure and axes objects
     """
-    fig, ax1 = plt.subplots(figsize=(12, 6))
+    # Create new figure
+    fig = plt.figure(figsize=(12, 6))
+    ax1 = fig.add_subplot(111)
+    
+    # Copy data
+    betas_data = np.array(betas, copy=True)
+    mags_data = np.array(magnetizations, copy=True)
+    energies_data = np.array(energies, copy=True)
     
     # Magnetization on left y-axis
     color1 = 'steelblue'
@@ -234,10 +275,11 @@ def plot_phase_diagram(betas, magnetizations, energies, m_std=None, e_std=None):
     ax1.set_ylabel('Magnetization (|M|)', color=color1)
     
     if m_std is not None:
-        line1 = ax1.errorbar(betas, magnetizations, yerr=m_std, fmt='o-',
+        m_std_data = np.array(m_std, copy=True)
+        line1 = ax1.errorbar(betas_data, mags_data, yerr=m_std_data, fmt='o-',
                             linewidth=2, markersize=8, capsize=5, color=color1, alpha=0.8)
     else:
-        line1 = ax1.plot(betas, magnetizations, 'o-', linewidth=2, markersize=8, color=color1, alpha=0.8)
+        line1 = ax1.plot(betas_data, mags_data, 'o-', linewidth=2, markersize=8, color=color1, alpha=0.8)
     
     ax1.tick_params(axis='y', labelcolor=color1)
     ax1.grid(True, alpha=0.3)
@@ -248,14 +290,15 @@ def plot_phase_diagram(betas, magnetizations, energies, m_std=None, e_std=None):
     ax2.set_ylabel('Energy per spin (E/N)', color=color2)
     
     if e_std is not None:
-        line2 = ax2.errorbar(betas, energies, yerr=e_std, fmt='s-',
+        e_std_data = np.array(e_std, copy=True)
+        line2 = ax2.errorbar(betas_data, energies_data, yerr=e_std_data, fmt='s-',
                             linewidth=2, markersize=8, capsize=5, color=color2, alpha=0.8)
     else:
-        line2 = ax2.plot(betas, energies, 's-', linewidth=2, markersize=8, color=color2, alpha=0.8)
+        line2 = ax2.plot(betas_data, energies_data, 's-', linewidth=2, markersize=8, color=color2, alpha=0.8)
     
     ax2.tick_params(axis='y', labelcolor=color2)
     
-    plt.title('Phase Diagram: Magnetization and Energy vs Temperature')
+    fig.suptitle('Phase Diagram: Magnetization and Energy vs Temperature')
     fig.tight_layout()
     
     return fig, (ax1, ax2)
@@ -263,7 +306,7 @@ def plot_phase_diagram(betas, magnetizations, energies, m_std=None, e_std=None):
 
 def show_plots(*figures, save_path=None, filename_prefix='plot'):
     """
-    Save matplotlib figures as PDFs. Figures are saved, not displayed.
+    Save matplotlib figures as PDFs with timestamps. Figures are saved, not displayed.
     
     Parameters:
     -----------
@@ -272,8 +315,8 @@ def show_plots(*figures, save_path=None, filename_prefix='plot'):
     save_path : str, optional
         Directory path to save figures. If None, saves to current directory.
     filename_prefix : str
-        Prefix for saved files (default: 'plot'). Files will be named 
-        'plot_1.pdf', 'plot_2.pdf', etc.
+        Prefix for saved files (default: 'plot'). Files will be named with timestamps
+        to prevent overwriting: 'plot_20260214_143022_1.pdf', etc.
     
     Returns:
     --------
@@ -291,7 +334,7 @@ def show_plots(*figures, save_path=None, filename_prefix='plot'):
     fig2, (ax2a, ax2b) = plot_spin_and_energy_vs_time(times, spins, energies)
     show_plots(fig1, fig2, save_path='./output', filename_prefix='ising')
     
-    # Files will be saved as: ./output/ising_1.pdf, ./output/ising_2.pdf
+    # Files will be saved as: ./output/ising_20260214_143022_1.pdf, etc.
     """
     import os
     
@@ -305,13 +348,20 @@ def show_plots(*figures, save_path=None, filename_prefix='plot'):
     else:
         os.makedirs(save_path, exist_ok=True)
     
+    # Generate timestamp for unique filenames
+    timestamp = time.strftime("%Y%m%d_%H%M%S")
+    
     saved_files = []
     
-    # Save all figures as PDFs
+    # Save all figures as PDFs with unique timestamped names
     for i, fig in enumerate(figures):
-        pdf_filename = os.path.join(save_path, f'{filename_prefix}_{i+1}.pdf')
+        pdf_filename = os.path.join(save_path, f'{filename_prefix}_{timestamp}_{i+1}.pdf')
+        # Force rendering and save
+        fig.canvas.draw()
         fig.savefig(pdf_filename, format='pdf', bbox_inches='tight', dpi=300)
         saved_files.append(pdf_filename)
         print(f"Saved: {pdf_filename}")
+        # Explicitly close the figure to free memory and prevent caching
+        plt.close(fig)
     
     return saved_files
