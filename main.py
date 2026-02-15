@@ -122,14 +122,12 @@ class IssingModelPipeline:
         print(f"  β = {beta} (1/(k_B*T))")
         print(f"  Sweeps: {sweeps}")
         
-        self.spins, self.energies = metropolis_algo(
+        self.lattice_final, self.spins, self.energies = metropolis_algo(
             self.lattice_init.astype(np.int64),
             sweeps,
             beta,
             energy0
         )
-        
-        self.lattice_final = self.lattice_init.copy()
         
         print(f"✓ Simulation completed")
         print(f"  Final energy: {self.energies[-1]:.2f}")

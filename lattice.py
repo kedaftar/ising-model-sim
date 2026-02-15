@@ -7,9 +7,7 @@ from numba import njit
 from scipy.ndimage import convolve, generate_binary_structure
 
 class Lattice: 
-#50 by 50 lattice
-    N = input ("Enter lattice size N (suggested 50): ")
-    N = int (N)
+    N = 50  # Default lattice size
 #shows initial lattice of spins 
     init_random = np.random.random((N,N))
     lattice_n = np.zeros((N,N))
@@ -27,4 +25,5 @@ class Lattice_energy:
         energies_of_lattice = -lattice * convolve(lattice, kern, mode= 'constant', cval=0 )
         return 0.5 * energies_of_lattice.sum()
 
-print (Lattice_energy.get_energy(Lattice.lattice_n))
+if __name__ == "__main__":
+    print (Lattice_energy.get_energy(Lattice.lattice_n))
