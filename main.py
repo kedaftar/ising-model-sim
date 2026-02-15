@@ -345,7 +345,12 @@ class IssingModelPipeline:
         print("STEP 5: ANALYSIS")
         print("-"*70)
         
-        analysis_results = {}
+        # Call analyze.py to load and visualize the JUST-SAVED data
+        analyze_data = analyze.analyze_latest_run()
+        
+        analysis_results = {
+            'analyze_data': analyze_data
+        }
         
         if self.ms is not None:
             # Find critical behavior
@@ -424,11 +429,11 @@ class IssingModelPipeline:
             # Step 4: Visualizations
             self.step4_generate_visualizations(save_plots=True)
             
-            # Step 5: Analysis
-            analysis = self.step5_analyze_results()
+            # Save data to npz file BEFORE analysis so analyze.py can load it
+            self._save_run_data(analysis=None)
             
-            # Save data to npz file for verification
-            self._save_run_data(analysis)
+            # Step 5: Analysis (now loads the JUST-SAVED data from this run)
+            analysis = self.step5_analyze_results()
             
             print("\n" + "="*70)
             print("PIPELINE COMPLETED SUCCESSFULLY")

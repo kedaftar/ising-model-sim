@@ -33,61 +33,79 @@ def get_latest_run_file(output_dir="./output"):
     return latest_file
 
 
-# Load the most recent simulation output
-print("="*70)
-print("ANALYZE - Loading Simulation Data")
-print("="*70)
-data_file = get_latest_run_file()
-data = np.load(data_file)
+def analyze_latest_run():
+    """
+    Load and analyze the most recent simulation output.
+    This function should be called AFTER the simulation has completed and saved data.
+    """
+    # Load the most recent simulation output
+    print("="*70)
+    print("ANALYZE - Loading Simulation Data")
+    print("="*70)
+    data_file = get_latest_run_file()
+    data = np.load(data_file)
 
-print(f"\nLoaded data from: {os.path.basename(data_file)}")
-print(f"File path: {data_file}")
-print(f"Available keys: {list(data.keys())}")
+    print(f"\nLoaded data from: {os.path.basename(data_file)}")
+    print(f"File path: {data_file}")
+    print(f"Available keys: {list(data.keys())}")
 
-lattice_init = data["lattice_init"]
-lattice_final = data["lattice_final"]
-spins = data["spins"]
-energies = data["energies"]
+    lattice_init = data["lattice_init"]
+    lattice_final = data["lattice_final"]
+    spins = data["spins"]
+    energies = data["energies"]
 
-# Get the correct beta value - prioritize beta_single (the one actually used for the simulation)
-if "beta_single" in data:
-    beta = float(data["beta_single"])
-    print(f"Beta used for single simulation: {beta}")
-elif "BJs" in data:
-    BJs = data["BJs"]
-    beta = BJs[0] if len(BJs) > 0 else "unknown"
-    print(f"Beta values (phase diagram): {BJs}")
-    print(f"Using first beta value: {beta}")
-else:
-    beta = "unknown"
-    print("No beta information found")
+    # Get the correct beta value - prioritize beta_single (the one actually used for the simulation)
+    if "beta_single" in data:
+        beta = float(data["beta_single"])
+        print(f"Beta used for single simulation: {beta}")
+    elif "BJs" in data:
+        BJs = data["BJs"]
+        beta = BJs[0] if len(BJs) > 0 else "unknown"
+        print(f"Beta values (phase diagram): {BJs}")
+        print(f"Using first beta value: {beta}")
+    else:
+        beta = "unknown"
+        print("No beta information found")
 
-print(f"\nData summary:")
-print(f"  Initial lattice shape: {lattice_init.shape}")
-print(f"  Number of sweeps: {len(spins)}")
-print(f"  Final energy: {energies[-1]:.2f}")
-print(f"  Final magnetization: {spins[-1]:.2f}")
-print(f"  Beta (β): {beta}")
+    print(f"\nData summary:")
+    print(f"  Initial lattice shape: {lattice_init.shape}")
+    print(f"  Number of sweeps: {len(spins)}")
+    print(f"  Final energy: {energies[-1]:.2f}")
+    print(f"  Final magnetization: {spins[-1]:.2f}")
+    print(f"  Beta (β): {beta}")
 
-# plot initial and final lattice
-fig_init, _ = plot_lattice(lattice_init, title="Initial Lattice")
-fig_final, _ = plot_lattice(lattice_final, title="Final Lattice")
+    # plot initial and final lattice
+    fig_init, _ = plot_lattice(lattice_init, title="Initial Lattice")
+    fig_final, _ = plot_lattice(lattice_final, title="Final Lattice")
 
-# plot time series
-fig_time, _ = plot_spin_and_energy_vs_time(
-    np.arange(len(spins)),
-    spins,
-    energies,
-    title=f"Spin and Energy Evolution (β={beta})"
-)
-fig_std_spin, _ = plot_standard_deviation(
-    spins,
-    title="Magnetization Standard Deviation"
-)
+    # plot time series
+    fig_time, _ = plot_spin_and_energy_vs_time(
+        np.arange(len(spins)),
+        spins,
+        energies,
+        title=f"Spin and Energy Evolution (β={beta})"
+    )
+    fig_std_spin, _ = plot_standard_deviation(
+        spins,
+        title="Magnetization Standard Deviation"
+    )
 
-fig_std_energy, _ = plot_standard_deviation(
-    energies,
-    title="Energy Standard Deviation"
-)
+    fig_std_energy, _ = plot_standard_deviation(
+        energies,
+        title="Energy Standard Deviation"
+    )
 
-plt.show()
+    plt.show()
+    
+    return {
+        'lattice_init': lattice_init,
+        'lattice_final': lattice_final,
+        'spins': spins,
+        'energies': energies,
+        'beta': beta
+    }
+
+
+# If running as standalone script, analyze immediately
+if __name__ == "__main__":
+    analyze_latest_run()

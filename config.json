@@ -1,10 +1,10 @@
 {
   "lattice": {
-    "N": 30,
+    "N": 50,
     "initial_condition": "random"
   },
   "simulation": {
-    "beta": 0.2,
+    "beta": 0.5,
     "sweeps": 1000,
     "burn_in": 500,
     "thin": 10
